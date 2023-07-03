@@ -1,0 +1,23 @@
+---
+reverse_exporters:
+- path: "/metrics"
+  exporters:
+  - http:
+      name: burrow
+      address: http://localhost:8000/metrics
+      timeout: 1s
+      labels:
+        clustername: node['kafka']['clustername']
+        role: none
+  - http:
+      name: kminio
+      address: http://127.0.0.1:8001/metrics
+      timeout: 10s
+      labels:
+        clustername: node['kafka']['clustername']
+  - http:
+      name: kafka
+      address: http://127.0.0.1:7070/
+      timeout: 10s
+      labels:
+        clustername: node['kafka']['clustername']     

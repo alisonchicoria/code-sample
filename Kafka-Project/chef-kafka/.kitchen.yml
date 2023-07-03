@@ -1,0 +1,51 @@
+---
+<% kitchen_driver = ENV.fetch('KITCHEN_DRIVER', 'vagrant') %>
+driver:
+  name: <%= kitchen_driver %>
+<% if kitchen_driver == 'ec2' %>
+  region: us-west-2
+  instance_type: t3.small
+  # VPC SG name: codeship-test
+  # VPC: vpc-ae9478ca
+  security_group_ids: ["sg-23632259"]
+  user_data: codeship-test/apt-get-update.sh
+  tags:
+    Name: <%= ENV.fetch('KITCHEN_EC2_HOSTNAME', 'test-kitchen') %>
+    eo:user:team: techops:scrum-techops-infrastructure
+    eo:user:department: techops
+    eo:ops:environment: dev
+    eo:ops:creator: test-kitchen
+
+transport:
+  name: speedy_ssh
+  ssh_key: <%= ENV['AWS_SSH_KEY_PATH'] || "~/.ssh/id_rsa" %>
+  connection_timeout: 10
+  connection_retries: 5
+
+provisioner:
+  name: chef_zero
+  product_name: chef
+
+platforms:
+  - name: ubuntu-18.04-chef-17
+    provisioner:
+      product_version: 17.9.52
+    driver:
+      box: bento/ubuntu-18.04
+      image_search:
+        owner-id: '474230206603'
+        name: upwork-ubuntu-bionic-1804-base-*
+    attributes:
+      'upwork-base':
+        chef:
+          version: '17.9.52'
+verifier:
+  name: inspec
+  sudo: true
+
+suites:
+  - name: upwork-kafka
+    run_list: upwork-kafka::default
+    attributes:
+      ec2:
+        placement_availability_zone: 'us-west-2a'

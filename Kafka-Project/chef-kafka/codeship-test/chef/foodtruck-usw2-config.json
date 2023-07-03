@@ -1,0 +1,7 @@
+{
+  "chef": {
+    "chef_server_url": "https://foodtruck-usw2.internal.com/organizations/",
+    "node_name": "codeship",
+    "client_key": "/.chef/codeship-foodtruck-usw2.pem"
+  }
+}

@@ -1,0 +1,75 @@
+---
+- name: ECR Container Setup
+  service: main
+  command: /bin/true
+- name: Container Setup
+  service: test
+  # This cmd just makes it so Dockerfile syntax, or container setup problems
+  # are shown as failures in 'Container Setup'
+  command: /bin/true
+- type: parallel
+  name: Initial Tests
+  steps:
+  - name: Syntax Check
+    service: test
+    exclude: ^master$
+    command: /bin/bash /wrap.sh bundle exec rake syntax
+  - name: Version Check
+    service: test
+    command: /bin/bash /wrap.sh bundle exec rake check_version
+  - name: Code Generator Check
+    service: test
+    command: /bin/bash /wrap.sh bundle exec rake check_code_generator
+  - name: Run Local Inspec Tests
+    service: test
+    exclude: ^master$
+    command: /bin/bash /wrap.sh bundle exec rake inspec_tests
+- name: Berks Cache Download
+  service: test
+  command: /bin/bash /s3-berks-cache.sh download
+- name: Berks Verify
+  service: test
+  command: /bin/bash /wrap.sh bundle exec rake berks_verify
+- name: Berks Cache Upload
+  service: test
+  command: /bin/bash /s3-berks-cache.sh upload
+- name: Kitchen create
+  service: test
+  exclude: ^master$
+  command: /bin/bash /wrap.sh bundle exec rake create
+  on_fail:
+    - command: /bin/bash /wrap.sh bundle exec kitchen destroy
+      name: destroy on fail
+- name: Kitchen converge
+  service: test
+  exclude: ^master$
+  command: /bin/bash /wrap.sh bundle exec rake converge
+  on_fail:
+    - command: /bin/bash /wrap.sh bundle exec kitchen destroy
+      name: destroy on fail
+- name: Kitchen verify
+  service: test
+  exclude: ^master$
+  command: /bin/bash /wrap.sh bundle exec rake verify
+  on_fail:
+    - command: /bin/bash /wrap.sh bundle exec kitchen destroy
+      name: destroy on fail
+- name: Kitchen destroy
+  service: test
+  exclude: ^master$
+  command: /bin/bash /wrap.sh bundle exec kitchen destroy
+- name: Berks Upload foodtruck-usw2
+  service: test
+  tag: ^master$
+  command: /bin/bash /wrap.sh bundle exec rake berks_install_upload_all_foodtruck_usw2
+- name: Berks Upload usw1
+  service: test
+  tag: ^master$
+  command: /bin/bash /wrap.sh bundle exec rake berks_install_upload_all
+- name: Notify Slack
+  service: test
+  tag: ^master$
+  command: /bin/bash /wrap.sh bundle exec ruby codeship-test/slacklog.rb
+- name: Notify Jira
+  service: test
+  command: /bin/bash /wrap.sh bundle exec bash codeship-test/pr/pr.sh

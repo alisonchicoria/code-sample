@@ -1,0 +1,193 @@
+# encoding: UTF-8
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+#
+# Available Rake tasks:
+#
+# $ bundle exec rake -T
+# bundle exec rake berks_upload   # Upload cookbook
+# bundle exec rake check_version  # Compare local metadata to remote
+# bundle exec rake clean          # Clean some generated files
+# bundle exec rake converge       # Run kitchen converge
+# bundle exec rake cookstyle      # Rubocop your cookbook
+# bundle exec rake default        # Run complete suite of tests
+# bundle exec rake foodcritic     # Foodcritic your cookbook for style
+# bundle exec rake syntax         # Run cookbook syntax checks
+# bundle exec rake test           # Run kitchen test integration
+# bundle exec rake verify         # Run kitchen verification tests
+#
+# More info at https://github.com/ruby/rake/blob/master/doc/rakefile.rdoc
+#
+
+require 'bundler/setup'
+
+kitchen_parallel = true
+chef_version = 14
+
+cookbook_name = nil
+File.open('metadata.rb', 'r') do |file|
+  file.each_line do |line|
+    result = /^name\s+'(.+)'\s*$/.match(line)
+    cookbook_name = result[1] if result
+  end
+end
+raise 'Unable to determine the name of the cookbook.' unless cookbook_name
+env_name = cookbook_name.gsub(/-environment$/, '')
+
+desc 'Run complete suite of tests'
+
+if cookbook_name =~ /-environment$/
+  task default: 'envtest'
+else
+  task default: 'apptest'
+end
+
+desc 'Run tests for an application/role cookbook'
+task apptest: %w(syntax check_version check_code_generator_local inspec_tests berks_update apptest_kitchen)
+
+desc 'Run tests for an environment cookbook'
+task envtest: %w(syntax check_version check_code_generator_local inspec_tests berks_update berks_env_diff)
+
+desc 'Run cookbook syntax checks'
+task syntax: %w(foodcritic cookstyle)
+
+desc 'Compare local metadata to remote'
+task :check_version do
+  sh 'ruby codeship-test/compare_versions.rb'
+end
+
+desc 'Check that code_generator code is up to date'
+task :check_code_generator do
+  sh 'ruby codeship-test/compare_versions.rb code_generator'
+end
+
+desc 'Check that code_generator code is up to date'
+task :check_code_generator_local do
+  sh 'ruby codeship-test/compare_versions.rb code_generator'
+end
+
+desc 'Foodcritic your cookbook for style'
+task :foodcritic do
+  sh "foodcritic -c #{chef_version} ."
+end
+
+desc 'Rubocop your cookbook'
+task :cookstyle do
+  sh 'cookstyle'
+end
+
+desc 'Run berks verify'
+task :berks_verify do
+  sh 'berks install'
+end
+
+desc 'Run berks update'
+task :berks_update do
+  sh 'berks update'
+end
+
+if cookbook_name =~ /-environment$/
+  task test: 'envtest'
+else
+  task test: 'apptest'
+end
+
+# inspec bug prevents parallel execution of kitchen verify
+desc 'Run kitchen test integration'
+task :apptest_kitchen do
+  if ENV['KITCHEN_DRIVER'] == 'ec2' && kitchen_parallel
+    sh "parallel --will-cite -j0 --ungroup kitchen test --destroy=always {} ::: $(kitchen list | cut -d' ' -f1 | sed 1d)"
+  else
+    sh 'kitchen test --destroy=always'
+  end
+end
+
+task :inspec_tests do
+  sh "inspec exec test/unit/#{cookbook_name}"
+end
+
+task :berks_apply do
+  sh "berks apply #{env_name}"
+end
+
+task :berks_apply_foodtruck_usw2 do
+  sh 'cp /.chef/knife-foodtruck-usw2.rb /.chef/knife.rb'
+  sh "berks apply #{env_name}"
+end
+
+desc 'Run kitchen create'
+task :create do
+  sh "kitchen create #{ENV['KITCHEN_DRIVER'] == 'ec2' && kitchen_parallel ? '-c' : ''}"
+end
+
+desc 'Run kitchen converge'
+task :converge do
+  sh "kitchen converge #{ENV['KITCHEN_DRIVER'] == 'ec2' && kitchen_parallel ? '-c' : ''}"
+end
+
+# inspec bug prevents parallel execution of kitchen verify
+desc 'Run kitchen verify'
+task :verify do
+  if ENV['KITCHEN_DRIVER'] == 'ec2' && kitchen_parallel
+    sh "parallel --will-cite -j0 --ungroup kitchen verify {} ::: $(kitchen list | cut -d' ' -f1 | sed 1d)"
+  else
+    sh 'kitchen verify'
+  end
+end
+
+desc 'Run kitchen destroy'
+task :destroy do
+  sh "kitchen destroy #{ENV['KITCHEN_DRIVER'] == 'ec2' && kitchen_parallel ? '-c' : ''}"
+end
+
+desc 'Upload cookbook'
+task :berks_upload do
+  sh "berks upload #{cookbook_name}"
+end
+
+desc 'Install then Upload cookbook'
+task :berks_install_upload do
+  sh 'berks install'
+  sh "berks upload #{cookbook_name}"
+end
+
+desc 'Install then Upload cookbook foodtruck-usw2'
+task :berks_install_upload_foodtruck_usw2 do
+  sh 'cp /.chef/knife-foodtruck-usw2.rb /.chef/knife.rb'
+  sh 'berks install'
+  sh "berks upload #{cookbook_name}"
+end
+
+desc 'Install then Upload cookbook and deps'
+task :berks_install_upload_all do
+  sh 'berks install'
+  sh 'berks upload'
+end
+
+desc 'Install then Upload cookbook and deps to foodtruck-usw2'
+task :berks_install_upload_all_foodtruck_usw2 do
+  sh 'cp /.chef/knife-foodtruck-usw2.rb /.chef/knife.rb'
+  sh 'berks install'
+  sh 'berks upload'
+end
+
+task :berks_env_diff do
+  sh "knife environment show #{env_name} -Fjson  |sed '/^$/d' >/tmp/env.#{env_name}.new.json"
+  sh "cp /tmp/env.#{env_name}.new.json /tmp/env.#{env_name}.orig.json"
+  sh "berks apply #{cookbook_name} -f /tmp/env.#{env_name}.new.json"
+  sh "diff -ruN /tmp/env.#{env_name}.orig.json /tmp/env.#{env_name}.new.json || true"
+end
+
+desc 'Clean some generated files'
+task :clean do
+  %w(
+    Berksfile.lock
+    .cache
+    coverage
+    Gemfile.lock
+    .kitchen
+    metadata.json
+    vendor
+  ).each { |f| FileUtils.rm_rf(Dir.glob(f)) }
+end

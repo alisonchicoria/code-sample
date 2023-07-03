@@ -1,0 +1,33 @@
+## Codeship encryption:
+codeship.aes
+*.aes
+codeship-test/ssh.key
+codeship-test/environment
+codeship-test/environment.example
+codeship-test/chef/codeship.pem
+codeship-test/.shared_state
+
+# Berkshelf
+Berksfile.lock
+
+# Chef Cookbook
+.vagrant
+/cookbooks
+
+# Test Kitchen
+.kitchen/
+# We need to use local file for overrides
+# .kitchen.local.yml
+
+# Ruby
+Gemfile.lock
+.bundle/gems/
+.bundle/bin/
+
+# MacOS exclusions
+.DS_store
+
+# unless supporting rvm < 1.11.0 or doing something fancy, ignore this:
+.rvmrc
+
+inspec.lock

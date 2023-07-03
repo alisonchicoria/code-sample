@@ -1,0 +1,1 @@
+Terraform deployment for a Fortune100 Entertainment company to enable Nuxeo over ECS, with a EC2 MongoDB Cluster, MSK and OpenSearch with Synonym Package

@@ -1,0 +1,26 @@
+source :chef_server
+source 'https://supermarket.chef.io'
+
+metadata
+
+# UNTIL: Chef14 deprecation, the new min Chef version looks like 15.3
+cookbook 'java', '= 6.0.0'
+cookbook 'seven_zip', '< 4.0.0'
+cookbook 'logrotate', '< 3.0.0'
+cookbook 'cron', '< 7.0.0'
+cookbook 'line', '< 4.0.0'
+cookbook 'ark', '< 6.0.0'
+cookbook 'postgresql', '< 9.0.0'
+cookbook 'nscd', '< 6.0.0'
+cookbook 'iptables', '< 7.1.0'
+cookbook 'ruby_rbenv', '< 4.0.0'
+
+# UNTIL: individual accounts are moved to Luminate
+cookbook 'users', '< 6.0.0'
+
+# Local cookbook dependencies included via the code below
+berksfile_local = File.expand_path(File.dirname(__FILE__)) + '/Berksfile.local'
+if File.exist?(berksfile_local)
+  contents = File.read(berksfile_local)
+  instance_eval(contents)
+end

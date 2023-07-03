@@ -1,0 +1,3 @@
+#
+# PUT all dependencies local to this cookbook into Berksfile.local
+#

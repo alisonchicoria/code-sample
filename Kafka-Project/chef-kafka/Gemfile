@@ -1,0 +1,31 @@
+# frozen_string_literal: true
+
+source 'https://rubygems.org'
+
+# Base
+gem 'rake'
+
+# Berkshelf
+gem 'berkshelf'
+
+# Foodcritic
+gem 'foodcritic'
+
+# Cookystyle
+gem 'cookstyle', '~> 5.0'
+
+# Test Kitchen
+gem 'kitchen-ec2', '~> 3.0'
+gem 'kitchen-sync'
+gem 'kitchen-transport-speedy'
+gem 'kitchen-vagrant'
+gem 'test-kitchen'
+
+gem 'inspec', '~> 4.0'
+gem 'inspec-bin', '~> 4.37'
+gem 'kitchen-inspec'
+
+gem 'chef', '~> 16.0'
+
+# Needed otherwise berks defaults to tar for unarchiving
+gem 'ffi-libarchive'

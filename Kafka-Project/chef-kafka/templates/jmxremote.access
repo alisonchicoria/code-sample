@@ -1,0 +1,4 @@
+monitorRoleUser   readonly
+controlRoleUser   readwrite \
+              create javax.management.monitor.*,javax.management.timer.* \
+              unregister

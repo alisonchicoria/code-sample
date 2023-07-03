@@ -1,0 +1,23 @@
+dockercfg:
+  image: codeship/aws-ecr-dockercfg-generator
+  add_docker: true
+  encrypted_env_file: codeship-test/environment.encrypted
+  environment:
+    - AWS_REGION=us-west-1
+    - AWS_STS_ACCOUNT=739939173819
+    - AWS_STS_ROLE=svcrole_codeship_ecr_read
+
+main:
+  build:
+    dockerfile: codeship-test/Dockerfile.main
+    image: main
+  cached: true
+  dockercfg_service: dockercfg
+
+test:
+  build:
+    dockerfile: codeship-test/Dockerfile
+  encrypted_env_file: codeship-test/environment.encrypted
+  cached: true
+  volumes:
+    - ./codeship-test/.shared_state:/shared_state
